@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "aqua-graph"
+version = "0.1.0"
+description = ""
+authors = ["Alvaro Gutierrez <alvarogutierrezmoraga@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+langchain = "^0.3.7"
+langgraph = "^0.2.46"
+chainlit = "^1.3.2"
+langchain-openai = "^0.2.8"
+langchain-community = "^0.3.7"
+azure-identity = "^1.19.0"
+azure-search-documents = "^11.5.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
