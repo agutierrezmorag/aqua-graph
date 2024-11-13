@@ -1,19 +1,21 @@
-from langgraph.graph import MessagesState, StateGraph
-from utils.models import LLM
-from utils.tools import tools
-from langgraph.prebuilt import ToolNode
-from langgraph.checkpoint.memory import MemorySaver
+import re
+
+from dotenv import load_dotenv
 from langchain_core.messages import (
     AIMessage,
     HumanMessage,
     RemoveMessage,
     SystemMessage,
-    filter_messages,
     ToolMessage,
+    filter_messages,
 )
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import MessagesState, StateGraph
+from langgraph.prebuilt import ToolNode
+
+from utils.models import LLM
 from utils.prompts import Q_SUGGESTION_TEMPLATE, RAG_TEMPLATE, SUMMARY_TEMPLATE
-from dotenv import load_dotenv
-import re
+from utils.tools import TOOLS
 
 load_dotenv()
 
@@ -41,7 +43,7 @@ async def model(state: AgentState):
     Returns:
         dict: Updated messages after LLM processing
     """
-    llm_with_tools = LLM.bind_tools(tools)
+    llm_with_tools = LLM.bind_tools(TOOLS)
     messages = state["messages"]
     summary = state.get("summarized_conversation", "")
 
@@ -210,7 +212,7 @@ async def join_nodes(state: AgentState):
 
 agent_builder = StateGraph(AgentState)
 agent_builder.add_node(model)
-agent_builder.add_node("tools", ToolNode(tools=tools))
+agent_builder.add_node("tools", ToolNode(tools=TOOLS))
 agent_builder.add_node(clean_messages)
 agent_builder.add_node(suggest_question)
 agent_builder.add_node(summarize_conversation)

@@ -1,6 +1,7 @@
 import chainlit as cl
-from agent import agent_graph
 from langchain_core.messages import HumanMessage
+
+from agent import agent_graph
 
 
 @cl.set_starters
