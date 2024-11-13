@@ -1,3 +1,4 @@
+import json
 import re
 
 from dotenv import load_dotenv
@@ -19,8 +20,7 @@ from utils.tools import TOOLS
 
 load_dotenv()
 
-NOMBRE_PATTERN = re.compile(r"Nombre del documento:\s*(.+)")
-FUENTE_PATTERN = re.compile(r"Fuente:\s*(.+)")
+METADATA_PATTERN = re.compile(r"Metadata:\s*({[^}]+})")
 
 
 class AgentState(MessagesState):
@@ -90,9 +90,8 @@ async def clean_messages(state: AgentState):
         state (AgentState): Current conversation state
 
     Returns:
-        dict: List of messages to remove
+        dict: List of messages to remove and used documents
     """
-    # Filter out tool-related messages
     tool_messages = filter_messages(
         state["messages"],
         include_names=["tool_message"],
@@ -101,16 +100,19 @@ async def clean_messages(state: AgentState):
 
     used_docs = []
     for msg in tool_messages:
-        nombre_match = NOMBRE_PATTERN.search(msg.content)
-        fuente_match = FUENTE_PATTERN.search(msg.content)
+        metadata_match = METADATA_PATTERN.search(msg.content)
 
-        if nombre_match and fuente_match:
-            used_docs.append(
-                {
-                    "Nombre del documento": nombre_match.group(1),
-                    "Fuente": fuente_match.group(1),
-                }
-            )
+        if metadata_match:
+            try:
+                metadata = json.loads(metadata_match.group(1))
+                used_docs.append(
+                    {
+                        "Nombre del documento": metadata.get("title", ""),
+                        "Fuente": metadata.get("source", ""),
+                    }
+                )
+            except json.JSONDecodeError:
+                continue
 
     messages_to_remove = [
         RemoveMessage(id=msg.id) for msg in tool_messages if msg.id is not None

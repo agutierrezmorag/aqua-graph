@@ -129,7 +129,7 @@ async def on_message(message: cl.Message):
                 cl.Pdf(
                     name=doc["Nombre del documento"].strip(),
                     display="side",
-                    path="./" + doc["Fuente"],
+                    url=doc["Fuente"],
                 )
                 for doc in d_content
                 if doc.get("Nombre del documento") and doc.get("Fuente")

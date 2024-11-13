@@ -3,7 +3,7 @@ from langchain_community.retrievers import AzureAISearchRetriever
 from langchain_core.prompts import PromptTemplate
 
 document_prompt = PromptTemplate.from_template(
-    "Fuente: {page_content}\n{metadata}\n ==="
+    "Metadata: {metadata} \nFuente:{page_content}\n ==="
 )
 
 retriever = AzureAISearchRetriever(
