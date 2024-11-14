@@ -159,7 +159,7 @@ async def on_message(message: cl.Message):
                 content="",
                 actions=actions,
                 type="system_message",
-                author="QSuggestion",
+                author="Sugerencia",
             ).send(),
         )
 
