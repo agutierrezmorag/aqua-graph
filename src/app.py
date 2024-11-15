@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Dict, Optional
 
 import chainlit as cl
 from langchain_core.messages import HumanMessage
@@ -8,40 +8,14 @@ from openai import APIError, RateLimitError
 from graph import agent_graph
 
 
-@cl.set_starters
-async def set_starters():
-    """
-    Define the initial messages for the chat.
-
-    This function sets up a list of initial messages (`Starters`) that will be displayed
-    to the user when a chat session starts. Each initial message includes a label,
-    a message, and an associated icon.
-
-    Returns:
-        list: A list of `Starter` objects with the information of the initial messages.
-    """
-    return [
-        cl.Starter(
-            label="Comité de Integridad",
-            message="¿Quiénes conforman el comité de integridad?",
-            icon="public/icons/group.png",
-        ),
-        cl.Starter(
-            label="Política de Regalos",
-            message="¿Qué hago en caso de recibir un regalo?",
-            icon="public/icons/giftbox.png",
-        ),
-        cl.Starter(
-            label="Canal de Denuncias",
-            message="¿Cómo puedo hacer una denuncia anónima y qué información debo proporcionar?",
-            icon="public/icons/shield.png",
-        ),
-        cl.Starter(
-            label="Conflictos de Interés",
-            message="¿Qué situaciones se consideran conflicto de interés y cómo debo reportarlas?",
-            icon="public/icons/conflict-of-interest.png",
-        ),
-    ]
+@cl.oauth_callback
+def oauth_callback(
+    provider_id: str,
+    token: str,
+    raw_user_data: Dict[str, str],
+    default_user: cl.User,
+) -> Optional[cl.User]:
+    return default_user
 
 
 @cl.on_chat_start
@@ -226,3 +200,39 @@ async def on_action(action: cl.Action):
 
     # Call the on_message function to process the suggested question
     await on_message(cl.Message(content=action.value))
+
+
+@cl.set_starters
+async def set_starters():
+    """
+    Define the initial messages for the chat.
+
+    This function sets up a list of initial messages (`Starters`) that will be displayed
+    to the user when a chat session starts. Each initial message includes a label,
+    a message, and an associated icon.
+
+    Returns:
+        list: A list of `Starter` objects with the information of the initial messages.
+    """
+    return [
+        cl.Starter(
+            label="Comité de Integridad",
+            message="¿Quiénes conforman el comité de integridad?",
+            icon="public/icons/group.png",
+        ),
+        cl.Starter(
+            label="Política de Regalos",
+            message="¿Qué hago en caso de recibir un regalo?",
+            icon="public/icons/giftbox.png",
+        ),
+        cl.Starter(
+            label="Canal de Denuncias",
+            message="¿Cómo puedo hacer una denuncia anónima y qué información debo proporcionar?",
+            icon="public/icons/shield.png",
+        ),
+        cl.Starter(
+            label="Conflictos de Interés",
+            message="¿Qué situaciones se consideran conflicto de interés y cómo debo reportarlas?",
+            icon="public/icons/conflict-of-interest.png",
+        ),
+    ]
