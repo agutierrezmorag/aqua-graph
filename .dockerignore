@@ -1,0 +1,79 @@
+# Python
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+.eggs/
+.installed.cfg
+.pytest_cache/
+.coverage
+.coverage.*
+.cache
+coverage.xml
+*.cover
+
+## Virtual Environments
+
+.env
+.venv
+env/
+venv/
+ENV/
+
+## Development files
+
+.git
+.gitignore
+.files/
+tests/
+*.md
+!README.md
+!chainlit.md
+!chainlit_es-CL.md
+
+## IDE
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+## Temp files
+
+*.log
+*.tmp
+
+## Build artifacts
+
+build/
+dist/
+.pybuilder/
+target/
+
+## Documentation
+
+docs/
+htmlcov/
+
+## Unit test / coverage reports
+
+.tox/
+.nox/
+.hypothesis/
+nosetests.xml
+
+## Jupyter
+
+.ipynb_checkpoints
+profile_default/
+ipython_config.py
+
+## mypy
+
+.mypy_cache/
+.dmypy.json
+dmypy.json
