@@ -1,21 +1,11 @@
 import logging
-from typing import Dict, Optional
+from typing import Optional
 
 import chainlit as cl
 from langchain_core.messages import HumanMessage
 from openai import APIError, RateLimitError
 
 from graph import agent_graph
-
-
-@cl.oauth_callback
-def oauth_callback(
-    provider_id: str,
-    token: str,
-    raw_user_data: Dict[str, str],
-    default_user: cl.User,
-) -> Optional[cl.User]:
-    return default_user
 
 
 @cl.on_chat_start
