@@ -99,7 +99,6 @@ async def on_message(message: cl.Message):
         Exception: For any other unexpected errors
     """
     # Initialize error tracking
-    error_occurred: bool = False
     msg: Optional[cl.Message] = None
 
     try:
@@ -192,28 +191,21 @@ async def on_message(message: cl.Message):
             logging.error(f"Error setting suggested question: {e}")
 
     except RateLimitError:
-        error_occurred = True
         await cl.Message(
             content="Lo siento, estamos experimentando límites de API. Por favor, intenta nuevamente en unos momentos."
         ).send()
 
     except APIError as e:
-        error_occurred = True
         logging.error(f"API Error: {e}")
         await cl.Message(
             content="Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta nuevamente."
         ).send()
 
     except Exception as e:
-        error_occurred = True
         logging.error(f"Unexpected error: {e}")
         await cl.Message(
             content="Lo siento, ocurrió un error inesperado. Por favor, intenta nuevamente."
         ).send()
-
-    finally:
-        if error_occurred and msg and not msg.sent:
-            await msg.send()
 
 
 @cl.action_callback("suggested_question")
