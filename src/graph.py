@@ -38,37 +38,56 @@ class AgentState(MessagesState):
 
     Inherits:
         MessagesState: Base class for managing conversation message state.
+
     """
 
     suggested_question: str
     used_docs: list[dict]
 
 
-async def model(state: AgentState):
-    """Process messages through LLM with bound tools and manage system prompts.
+async def manage_system_prompt(state: AgentState):
+    """Manages system prompts by initializing or maintaining conversation context.
+
+    This node ensures there is always a system prompt present in the conversation.
+    If no system prompt exists, it creates one with a default summary template.
 
     Args:
-        state (AgentState): Current conversation state containing messages
+        state (AgentState): Current conversation state containing:
+            - messages: List of conversation messages
+            - suggested_question: Optional suggested follow-up
+            - used_docs: List of referenced documents
 
     Returns:
-        dict: Updated messages after LLM processing
+        dict: Updated state with managed system messages
+            - messages: List including system prompt
     """
-    llm_with_tools = LLM.bind_tools(TOOLS)
     messages = state["messages"]
-    summary = state.get("summarized_conversation", "")
-
     system_messages = filter_messages(messages, include_types=[SystemMessage])
 
     if not system_messages:
-        formatted_template = RAG_TEMPLATE.format(
-            summary=summary if summary else "No hay resumen previo."
-        )
+        formatted_template = RAG_TEMPLATE.format(summary="No hay resumen previo.")
         messages.insert(0, SystemMessage(content=formatted_template))
 
-    response = await llm_with_tools.with_config({"run_name": "agent_answer"}).ainvoke(
-        messages
-    )
+    return {"messages": messages, "suggested_question": "", "used_docs": []}
 
+
+async def model(state: AgentState):
+    """Processes messages through LLM to generate responses with tool support.
+
+    This node handles the core conversation by passing messages through an LLM
+    with bound tools for enhanced capabilities like document search and retrieval.
+
+    Args:
+        state (AgentState): Current conversation state
+
+    Returns:
+        dict: LLM response state
+            - messages: List containing the LLM's response
+    """
+    llm_with_tools = LLM.bind_tools(TOOLS)
+    response = await llm_with_tools.with_config({"run_name": "agent_answer"}).ainvoke(
+        state["messages"]
+    )
     return {"messages": response}
 
 
@@ -170,7 +189,6 @@ async def check_message_count(state: AgentState):
 
     if len(messages) < 6:
         return "suggest_question"
-
     return "summarize_conversation"
 
 
@@ -223,6 +241,7 @@ async def join_nodes(state: AgentState):
 
 
 agent_builder = StateGraph(AgentState)
+agent_builder.add_node(manage_system_prompt)
 agent_builder.add_node(model)
 agent_builder.add_node("tools", ToolNode(tools=TOOLS))
 agent_builder.add_node(clean_messages)
@@ -230,13 +249,16 @@ agent_builder.add_node(suggest_question)
 agent_builder.add_node(summarize_conversation)
 agent_builder.add_node(join_nodes)
 
-agent_builder.set_entry_point("model")
+agent_builder.set_entry_point("manage_system_prompt")
+agent_builder.add_edge("manage_system_prompt", "model")
 
 agent_builder.add_conditional_edges(
     "model",
     pending_tool_calls,
     {"tools": "tools", "clean_messages": "clean_messages"},
 )
+
+agent_builder.add_edge("tools", "model")
 
 agent_builder.add_conditional_edges(
     "clean_messages",
@@ -247,8 +269,6 @@ agent_builder.add_conditional_edges(
     },
 )
 
-
-agent_builder.add_edge("tools", "model")
 agent_builder.add_edge("suggest_question", "join_nodes")
 agent_builder.add_edge("summarize_conversation", "join_nodes")
 agent_builder.set_finish_point("join_nodes")
