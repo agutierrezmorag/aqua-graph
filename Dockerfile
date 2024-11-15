@@ -23,7 +23,10 @@ RUN poetry config virtualenvs.create false \
 COPY . .
 
 # Expose port
-EXPOSE 8000
+EXPOSE 80
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
 
 # Run the application with Chainlit
-CMD ["poetry", "run", "chainlit", "run", "src/app.py", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["poetry", "run", "chainlit", "run", "src/app.py", "--host", "0.0.0.0", "--port", "80", "-h"]

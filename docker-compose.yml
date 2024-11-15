@@ -6,12 +6,12 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "80:80"
     volumes:
       - .:/app:cached
     env_file:
       - .env
     environment:
       - PYTHONUNBUFFERED=1
-    command: poetry run chainlit run src/app.py --host 0.0.0.0 --port 8000
+    command: poetry run chainlit run src/app.py --host 0.0.0.0 --port 80 -h
     restart: unless-stopped
