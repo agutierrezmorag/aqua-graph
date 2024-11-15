@@ -1,5 +1,9 @@
+import logging
+from typing import Optional
+
 import chainlit as cl
 from langchain_core.messages import HumanMessage
+from openai import APIError, RateLimitError
 
 from graph import agent_graph
 
@@ -76,92 +80,140 @@ async def on_chat_start():
 
 @cl.on_message
 async def on_message(message: cl.Message):
-    """
-    Handle incoming messages.
+    """Handle incoming user messages in the chat interface with comprehensive error handling.
 
-    This function processes incoming messages, interacts with the agent to get responses,
-    and manages suggested questions and document elements.
+    This function processes incoming chat messages, manages conversation state, generates AI responses,
+    and handles suggested follow-up questions. It includes error handling for API failures,
+    rate limits, and unexpected errors.
 
     Args:
-        message (cl.Message): The incoming message object.
+        message (cl.Message): The incoming chat message object containing user input
+
+    Returns:
+        None: Messages are sent directly through the chainlit interface
+
+    Raises:
+        ValueError: If agent or config is not properly initialized
+        RateLimitError: If OpenAI API rate limits are exceeded
+        APIError: If there are issues with the OpenAI API calls
+        Exception: For any other unexpected errors
     """
+    # Initialize error tracking
+    error_occurred: bool = False
+    msg: Optional[cl.Message] = None
 
-    # Retrieve the suggested question message from the user session
-    suggested_question_message = cl.user_session.get("suggested_question_message")
-    if suggested_question_message:
-        # Remove the suggested question message if it exists
-        await suggested_question_message.remove()
-        cl.user_session.set("suggested_question_message", None)
-        cl.user_session.set("suggested_question", None)
+    try:
+        # Clear previous suggested question
+        suggested_question_message = cl.user_session.get("suggested_question_message")
+        if suggested_question_message:
+            await suggested_question_message.remove()
+            cl.user_session.set("suggested_question_message", None)
+            cl.user_session.set("suggested_question", None)
 
-    # Retrieve the agent and config from the user session
-    agent = cl.user_session.get("agent")
-    config = cl.user_session.get("config")
-    inputs = {"messages": [HumanMessage(content=message.content)]}
+        agent = cl.user_session.get("agent")
+        config = cl.user_session.get("config")
 
-    elements = []
-    msg = cl.Message(content="")
+        if not agent or not config:
+            raise ValueError("Agent or config not initialized")
 
-    # Process events from the agent asynchronously
-    async for event in agent.astream_events(
-        inputs,
-        config,
-        version="v2",
-    ):
-        event_name = event["name"]
-        event_type = event["event"]
+        inputs = {"messages": [HumanMessage(content=message.content)]}
+        elements = []
+        msg = cl.Message(content="")
 
-        if event_type == "on_chat_model_stream" and event_name == "agent_answer":
-            # Stream the agent's answer content
-            content = event["data"]["chunk"].content
-            if content:
-                await msg.stream_token(content)
+        async for event in agent.astream_events(
+            inputs,
+            config,
+            version="v2",
+        ):
+            try:
+                event_name = event["name"]
+                event_type = event["event"]
 
-        if event_type == "on_chain_end" and event_name == "Agente AquaChile":
-            # Set the suggested question in the user session
-            q_content = event["data"]["output"]["suggested_question"]
-            if q_content:
-                cl.user_session.set("suggested_question", q_content)
+                if (
+                    event_type == "on_chat_model_stream"
+                    and event_name == "agent_answer"
+                ):
+                    content = event["data"]["chunk"].content
+                    if content:
+                        await msg.stream_token(content)
 
-            # Create PDF elements from the used documents
-            d_content = event["data"]["output"]["used_docs"]
-            elements = [
-                cl.Pdf(
-                    name=doc["Nombre del documento"].strip(),
-                    display="side",
-                    url=doc["Fuente"],
+                if event_type == "on_chain_end" and event_name == "Agente AquaChile":
+                    # Process suggested question
+                    q_content = event["data"]["output"].get("suggested_question")
+                    if q_content:
+                        cl.user_session.set("suggested_question", q_content)
+
+                    # Process documents
+                    d_content = event["data"]["output"].get("used_docs", [])
+                    elements = [
+                        cl.Pdf(
+                            name=doc["Nombre del documento"].strip(),
+                            display="side",
+                            url=doc["Fuente"],
+                        )
+                        for doc in d_content
+                        if doc.get("Nombre del documento") and doc.get("Fuente")
+                    ]
+
+            except KeyError as ke:
+                logging.error(f"Invalid event structure: {ke}")
+                continue
+            except Exception as e:
+                logging.error(f"Error processing event: {e}")
+                continue
+
+        # Send message with elements
+        if elements:
+            msg.elements = elements
+        await msg.send()
+
+        # Handle suggested question
+        try:
+            suggested_question = cl.user_session.get("suggested_question")
+            if suggested_question:
+                actions = [
+                    cl.Action(
+                        name="suggested_question",
+                        label=f"{suggested_question}",
+                        value=suggested_question,
+                        description=suggested_question,
+                    )
+                ]
+                cl.user_session.set(
+                    "suggested_question_message",
+                    await cl.Message(
+                        content="",
+                        actions=actions,
+                        type="system_message",
+                        author="Sugerencia",
+                    ).send(),
                 )
-                for doc in d_content
-                if doc.get("Nombre del documento") and doc.get("Fuente")
-            ]
+        except Exception as e:
+            logging.error(f"Error setting suggested question: {e}")
 
-    # Add elements to the message if any
-    if elements:
-        msg.elements = elements
-    await msg.send()
+    except RateLimitError:
+        error_occurred = True
+        await cl.Message(
+            content="Lo siento, estamos experimentando límites de API. Por favor, intenta nuevamente en unos momentos."
+        ).send()
 
-    # Retrieve the suggested question from the user session
-    suggested_question = cl.user_session.get("suggested_question")
-    if suggested_question is not None:
-        # Create an action for the suggested question
-        actions = [
-            cl.Action(
-                name="suggested_question",
-                label=f"{suggested_question}",
-                value=suggested_question,
-                description=suggested_question,
-            )
-        ]
-        # Set the suggested question message in the user session
-        cl.user_session.set(
-            "suggested_question_message",
-            await cl.Message(
-                content="",
-                actions=actions,
-                type="system_message",
-                author="Sugerencia",
-            ).send(),
-        )
+    except APIError as e:
+        error_occurred = True
+        logging.error(f"API Error: {e}")
+        await cl.Message(
+            content="Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta nuevamente."
+        ).send()
+
+    except Exception as e:
+        error_occurred = True
+        logging.error(f"Unexpected error: {e}")
+        await cl.Message(
+            content="Lo siento, ocurrió un error inesperado. Por favor, intenta nuevamente."
+        ).send()
+
+    finally:
+        if error_occurred and msg and not msg.sent:
+            await msg.send()
 
 
 @cl.action_callback("suggested_question")
