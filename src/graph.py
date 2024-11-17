@@ -1,7 +1,6 @@
 import json
 import re
 
-from dotenv import load_dotenv
 from langchain_core.messages import (
     AIMessage,
     HumanMessage,
@@ -11,14 +10,12 @@ from langchain_core.messages import (
     filter_messages,
 )
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import MessagesState, StateGraph
+from langgraph.graph import END, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from utils.models import LLM
 from utils.prompts import Q_SUGGESTION_TEMPLATE, RAG_TEMPLATE, SUMMARY_TEMPLATE
 from utils.tools import TOOLS
-
-load_dotenv()
 
 METADATA_PATTERN = re.compile(r"Metadata:\s*({[^}]+})")
 
@@ -188,56 +185,36 @@ async def check_message_count(state: AgentState):
     )
 
     if len(messages) < 6:
-        return "suggest_question"
+        return "end"
     return "summarize_conversation"
 
 
 async def summarize_conversation(state: AgentState):
-    """Generate conversation summary and update system message.
-
-    Args:
-        state (AgentState): Current conversation state
-
-    Returns:
-        dict: Messages to remove after summarization
-    """
+    """Generate conversation summary and update system message."""
     system_message = filter_messages(state["messages"], include_types=[SystemMessage])[
         0
     ]
-
-    messages_to_summarize = filter_messages(
+    messages = filter_messages(
         state["messages"],
-        exclude_types=[SystemMessage],
+        include_types=[HumanMessage, AIMessage],
     )
 
-    formatted_conversation = "\n\n".join(
-        f"{'USUARIO' if isinstance(msg, HumanMessage) else 'BOT'}: {msg.content}"
-        for msg in messages_to_summarize
+    # Create minimal conversation string
+    formatted_conversation = "\n".join(
+        f"{'USER' if isinstance(msg, HumanMessage) else 'BOT'}: {msg.content}"
+        for msg in messages
     )
 
-    formatted_prompt = SUMMARY_TEMPLATE.format(conversation=formatted_conversation)
-    response = await LLM.ainvoke(formatted_prompt)
+    # Use more focused prompt
+    response = await LLM.with_config(
+        config={"llm_temperature": 0.2}  # Lower temperature for more concise summary
+    ).ainvoke(SUMMARY_TEMPLATE.format(conversation=formatted_conversation))
 
-    formatted_template = RAG_TEMPLATE.format(summary=response.content)
-    system_message.content = formatted_template
+    # Update system message with new summary
+    system_message.content = RAG_TEMPLATE.format(summary=response.content)
 
-    messages_to_remove = [
-        RemoveMessage(id=msg.id) for msg in messages_to_summarize if msg.id is not None
-    ]
-
-    return {"messages": messages_to_remove}
-
-
-async def join_nodes(state: AgentState):
-    """Pass through node for graph completion.
-
-    Args:
-        state (AgentState): Current conversation state
-
-    Returns:
-        AgentState: Unmodified state
-    """
-    return state
+    # Remove processed messages
+    return {"messages": [RemoveMessage(id=msg.id) for msg in messages if msg.id]}
 
 
 agent_builder = StateGraph(AgentState)
@@ -247,7 +224,6 @@ agent_builder.add_node("tools", ToolNode(tools=TOOLS))
 agent_builder.add_node(clean_messages)
 agent_builder.add_node(suggest_question)
 agent_builder.add_node(summarize_conversation)
-agent_builder.add_node(join_nodes)
 
 agent_builder.set_entry_point("manage_system_prompt")
 agent_builder.add_edge("manage_system_prompt", "model")
@@ -260,18 +236,14 @@ agent_builder.add_conditional_edges(
 
 agent_builder.add_edge("tools", "model")
 
+agent_builder.add_edge("clean_messages", "suggest_question")
 agent_builder.add_conditional_edges(
-    "clean_messages",
+    "suggest_question",
     check_message_count,
-    {
-        "summarize_conversation": "summarize_conversation",
-        "suggest_question": "suggest_question",
-    },
+    {"end": END, "summarize_conversation": "summarize_conversation"},
 )
+agent_builder.add_edge("summarize_conversation", END)
 
-agent_builder.add_edge("suggest_question", "join_nodes")
-agent_builder.add_edge("summarize_conversation", "join_nodes")
-agent_builder.set_finish_point("join_nodes")
 
 agent_graph = agent_builder.compile(checkpointer=MemorySaver()).with_config(
     {"run_name": "Agente AquaChile"}
