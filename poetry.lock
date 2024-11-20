@@ -1275,34 +1275,51 @@ langchain-core = ">=0.3.15,<0.4.0"
 
 [[package]]
 name = "langgraph"
-version = "0.2.46"
+version = "0.2.52"
 description = "Building stateful, multi-actor applications with LLMs"
 optional = false
 python-versions = "<4.0,>=3.9.0"
 files = [
-    {file = "langgraph-0.2.46-py3-none-any.whl", hash = "sha256:7ca4031bc8f06cb3697ccee21ca80464588656391d3888090b6790dd89bffad1"},
-    {file = "langgraph-0.2.46.tar.gz", hash = "sha256:f1a39ba0d9b3df3b807b14015e682bc2b445ceb760d113e75ab34209a7eaadef"},
+    {file = "langgraph-0.2.52-py3-none-any.whl", hash = "sha256:4cec56629b833a4f61678d5395719f7a096b16438bf521c48744e9d0579f3559"},
+    {file = "langgraph-0.2.52.tar.gz", hash = "sha256:d28b58787b44b880fcdd9479a61a35cc9c273d007eb756ee468fb2f5f72c7738"},
 ]
 
 [package.dependencies]
 langchain-core = ">=0.2.43,<0.3.0 || >0.3.0,<0.3.1 || >0.3.1,<0.3.2 || >0.3.2,<0.3.3 || >0.3.3,<0.3.4 || >0.3.4,<0.3.5 || >0.3.5,<0.3.6 || >0.3.6,<0.3.7 || >0.3.7,<0.3.8 || >0.3.8,<0.3.9 || >0.3.9,<0.3.10 || >0.3.10,<0.3.11 || >0.3.11,<0.3.12 || >0.3.12,<0.3.13 || >0.3.13,<0.3.14 || >0.3.14,<0.4.0"
-langgraph-checkpoint = ">=2.0.0,<3.0.0"
+langgraph-checkpoint = ">=2.0.4,<3.0.0"
 langgraph-sdk = ">=0.1.32,<0.2.0"
 
 [[package]]
 name = "langgraph-checkpoint"
-version = "2.0.3"
+version = "2.0.5"
 description = "Library with base interfaces for LangGraph checkpoint savers."
 optional = false
 python-versions = "<4.0.0,>=3.9.0"
 files = [
-    {file = "langgraph_checkpoint-2.0.3-py3-none-any.whl", hash = "sha256:70da073793e0750f4b9dfe5fbbe49b267c494987aaa8f2d04be23bfd0d8a6fd7"},
-    {file = "langgraph_checkpoint-2.0.3.tar.gz", hash = "sha256:d7aabbc78eeb5466301be2ede5e0b0b8e5dc97647fcbe79801f1326f85fc0344"},
+    {file = "langgraph_checkpoint-2.0.5-py3-none-any.whl", hash = "sha256:0e7e730ea9358577bdcdeb6a17d8f340bad59770e2895a8a7fc853a76e08400b"},
+    {file = "langgraph_checkpoint-2.0.5.tar.gz", hash = "sha256:48612cdaf98c40a998079d222abb196a61e504d04dea65c7820d738d42150cac"},
 ]
 
 [package.dependencies]
 langchain-core = ">=0.2.38,<0.4"
 msgpack = ">=1.1.0,<2.0.0"
+
+[[package]]
+name = "langgraph-checkpoint-postgres"
+version = "2.0.3"
+description = "Library with a Postgres implementation of LangGraph checkpoint saver."
+optional = false
+python-versions = "<4.0.0,>=3.9.0"
+files = [
+    {file = "langgraph_checkpoint_postgres-2.0.3-py3-none-any.whl", hash = "sha256:d341c994cef4f37f466113be1cec0d0319d50b1d3ffbbc443871148d54ce18fe"},
+    {file = "langgraph_checkpoint_postgres-2.0.3.tar.gz", hash = "sha256:69a28a4f9714bf183be19be92c84e3aaf5ea503c5a0b34ec388471588135bf51"},
+]
+
+[package.dependencies]
+langgraph-checkpoint = ">=2.0.2,<3.0.0"
+orjson = ">=3.10.1"
+psycopg = ">=3.0.0,<4.0.0"
+psycopg-pool = ">=3.0.0,<4.0.0"
 
 [[package]]
 name = "langgraph-sdk"
@@ -2057,6 +2074,43 @@ files = [
 ]
 
 [[package]]
+name = "psycopg"
+version = "3.2.3"
+description = "PostgreSQL database adapter for Python"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "psycopg-3.2.3-py3-none-any.whl", hash = "sha256:644d3973fe26908c73d4be746074f6e5224b03c1101d302d9a53bf565ad64907"},
+    {file = "psycopg-3.2.3.tar.gz", hash = "sha256:a5764f67c27bec8bfac85764d23c534af2c27b893550377e37ce59c12aac47a2"},
+]
+
+[package.dependencies]
+typing-extensions = {version = ">=4.6", markers = "python_version < \"3.13\""}
+tzdata = {version = "*", markers = "sys_platform == \"win32\""}
+
+[package.extras]
+binary = ["psycopg-binary (==3.2.3)"]
+c = ["psycopg-c (==3.2.3)"]
+dev = ["ast-comments (>=1.1.2)", "black (>=24.1.0)", "codespell (>=2.2)", "dnspython (>=2.1)", "flake8 (>=4.0)", "mypy (>=1.11)", "types-setuptools (>=57.4)", "wheel (>=0.37)"]
+docs = ["Sphinx (>=5.0)", "furo (==2022.6.21)", "sphinx-autobuild (>=2021.3.14)", "sphinx-autodoc-typehints (>=1.12)"]
+pool = ["psycopg-pool"]
+test = ["anyio (>=4.0)", "mypy (>=1.11)", "pproxy (>=2.7)", "pytest (>=6.2.5)", "pytest-cov (>=3.0)", "pytest-randomly (>=3.5)"]
+
+[[package]]
+name = "psycopg-pool"
+version = "3.2.4"
+description = "Connection Pool for Psycopg"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "psycopg_pool-3.2.4-py3-none-any.whl", hash = "sha256:f6a22cff0f21f06d72fb2f5cb48c618946777c49385358e0c88d062c59cbd224"},
+    {file = "psycopg_pool-3.2.4.tar.gz", hash = "sha256:61774b5bbf23e8d22bedc7504707135aaf744679f8ef9b3fe29942920746a6ed"},
+]
+
+[package.dependencies]
+typing-extensions = ">=4.6"
+
+[[package]]
 name = "pycparser"
 version = "2.22"
 description = "C parser in Python"
@@ -2800,6 +2854,17 @@ mypy-extensions = ">=0.3.0"
 typing-extensions = ">=3.7.4"
 
 [[package]]
+name = "tzdata"
+version = "2024.2"
+description = "Provider of IANA time zone data"
+optional = false
+python-versions = ">=2"
+files = [
+    {file = "tzdata-2024.2-py2.py3-none-any.whl", hash = "sha256:a48093786cdcde33cad18c2555e8532f34422074448fbc874186f0abd79565cd"},
+    {file = "tzdata-2024.2.tar.gz", hash = "sha256:7d85cc416e9382e69095b7bdf4afd9e3880418a2413feec7069d533d6b4e31cc"},
+]
+
+[[package]]
 name = "uptrace"
 version = "1.27.0"
 description = "OpenTelemetry Python distribution for Uptrace"
@@ -3096,4 +3161,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "e1cfe2058615816090e60ed781494b589ed2b3c679aacd53749c35ab811188bf"
+content-hash = "1fbb4d0c696080eefa97304c53cff029d719d81482fa3dd10ad133f9dc228e8d"
