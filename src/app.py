@@ -1,11 +1,14 @@
 import logging
+import os
+import sys
 from typing import Optional
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import chainlit as cl
-from langchain_core.messages import HumanMessage
 from openai import APIError, RateLimitError
 
-from graph import agent_graph
+from aquagraph.graph import agent_graph
 
 
 @cl.on_chat_start
@@ -79,7 +82,7 @@ async def on_message(message: cl.Message):
         if not agent or not config:
             raise ValueError("Agent or config not initialized")
 
-        inputs = {"messages": [HumanMessage(content=message.content)]}
+        inputs = {"user_input": message.content}
         elements = []
         msg = cl.Message(content="")
 
